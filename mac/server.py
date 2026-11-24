@@ -7,7 +7,7 @@ smee.io から転送された GitHub の Webhook を受ける。
 import hashlib, hmac, json, os, time, urllib.request, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from prompts import CONVERT_V12, JUDGE
-import llm_gemini as llm
+import llm
 
 GH_TOKEN = os.environ["GITHUB_TOKEN"]
 SECRET = os.environ.get("WEBHOOK_SECRET", "").encode()

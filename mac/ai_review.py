@@ -4,7 +4,7 @@
 使い方：python3 ai_review.py owner/repo 2   （リポジトリ、PR番号）
 """
 import json, os, sys, urllib.request
-import llm_gemini as llm
+import llm
 
 TOKEN = os.environ["GITHUB_TOKEN"]
 repo, number = sys.argv[1], sys.argv[2]
