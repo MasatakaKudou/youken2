@@ -5,6 +5,7 @@
 並列で呼べるよう、1回ごとに別プロセスで起動する。
 """
 import json, os, re, subprocess, tempfile, time
+from prompts import wrap
 
 MODEL = os.environ.get("CLAUDE_MODEL", "haiku")
 TIMEOUT = float(os.environ.get("CLAUDE_TIMEOUT", "60"))
@@ -14,7 +15,7 @@ stats = {"requests": 0, "errors": 0}
 
 def _call(system, text):
     stats["requests"] += 1
-    cmd = ["claude", "-p", "--model", MODEL, "--max-turns", "1", "--system-prompt", system, text]
+    cmd = ["claude", "-p", "--model", MODEL, "--max-turns", "1", "--system-prompt", system, wrap(text)]
     for i in range(2):
         r = subprocess.run(cmd, cwd=_cwd, capture_output=True, text=True, timeout=TIMEOUT)
         if r.returncode == 0 and r.stdout.strip():

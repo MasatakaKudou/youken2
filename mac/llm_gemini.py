@@ -5,6 +5,7 @@
 先に返ってきたほうを使う。503 / 429 は少し待ってから送り直す。
 """
 import json, os, time, urllib.request, urllib.error
+from prompts import wrap
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 
 API_KEY = os.environ["GEMINI_API_KEY"]
@@ -28,7 +29,7 @@ def _once(body):
 def _call(system, text, json_mode=False, temperature=0.7):
     body = {
         "systemInstruction": {"parts": [{"text": system}]},
-        "contents": [{"role": "user", "parts": [{"text": text}]}],
+        "contents": [{"role": "user", "parts": [{"text": wrap(text)}]}],
         "generationConfig": {"temperature": temperature},
     }
     if json_mode:

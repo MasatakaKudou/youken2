@@ -1,5 +1,7 @@
 # youken2：#2 褒め言葉変換基盤の実測キット
 
+> **更新**：LLM は Claude Code（`claude -p`、モデル haiku）が初期設定になりました。APIキーは不要で、工藤さんの Claude のプランの範囲で動きます。一括の実測も Colab ではなく Mac の `mac/batch.py` で回せます（下の「Mac で一括の実測」）。Gemini に戻すときは `LLM_BACKEND=gemini`。
+
 YouTubeチャンネル「要件定義からやります」#2の検証用リポジトリです。
 
 ※ `src/userSearch.js` はわざとSQLインジェクションを含むデモ用コードです（setup.py が PR として作成）。本番では使わないでください。
@@ -86,3 +88,17 @@ GPU が割り当てられないときは、時間をおいてやり直してく�
 - Colab の `results.zip`
 - `mac/logs/server.jsonl` と `mac/logs/display.jsonl`
 - 手元デモの動画2本と、スキルの作成時間
+
+## Mac で一括の実測（Claude で並列）
+
+`./start.sh` とは別のターミナルで実行します。結果は `mac/results/` に保存されます。
+
+```bash
+cd mac && source .env
+python3 batch.py A            # 同じ指摘を100回変換（約5分）
+python3 batch.py C --n 200    # 負荷試験200件（約20分）
+python3 batch.py D            # カナリアと自動ロールバック（最長10分）
+python3 batch.py B            # 判定の精度（先に data/eval_candidates.csv の label 列を自分で付ける）
+```
+
+並列数は `--par 4`（初期値）。利用上限に当たったら下げてください。
