@@ -70,7 +70,7 @@ def exp_a2(par):
     import re
     d = json.load(open("results/A_variance.json"))
     def one(o):
-        out = llm._call(JUDGE_COLD, o["out"])
+        out = llm.convert(JUDGE_COLD, o["out"])  # 中身は同じ呼び出し
         m = re.search(r"\{.*?\}", out, re.S)
         try: return bool(json.loads(m.group(0))["cold"])
         except Exception: return None
