@@ -24,7 +24,9 @@ def _call(system, text, json_mode=False, temperature=0.7, retries=3):
             return d["candidates"][0]["content"]["parts"][0]["text"].strip()
         except urllib.error.HTTPError as e:
             if e.code == 429 and i < retries - 1:  # 無料枠のレート制限。少し待って再試行
-                time.sleep(5 * (i + 1)); continue
+                wait = 5 * (i + 1)
+                print(f"  [Gemini] 429（回数制限）→ {wait}秒待って再試行", flush=True)
+                time.sleep(wait); continue
             raise
 
 
