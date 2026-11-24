@@ -73,10 +73,19 @@ def main():
 
     # 4. テスト用 Issue と PR
     if "ISSUE_NUMBER" not in env:
+        found = [i for i in gh("GET", f"/repos/{repo}/issues?state=open&per_page=100", tok)
+                 if i["title"] == "レビューコメント変換テスト" and "pull_request" not in i]
+        if found:
+            env["ISSUE_NUMBER"] = str(found[0]["number"])
+    if "ISSUE_NUMBER" not in env:
         iss = gh("POST", f"/repos/{repo}/issues", tok, {"title": "レビューコメント変換テスト",
                                                        "body": "手元デモと表示時間の計測に使うIssueです。"})
         env["ISSUE_NUMBER"] = str(iss["number"])
     print(f"[OK] テスト用 Issue：#{env['ISSUE_NUMBER']}")
+    if "PR_NUMBER" not in env:
+        found = gh("GET", f"/repos/{repo}/pulls?state=open&head={repo.split('/')[0]}:feature/user-search", tok)
+        if found:
+            env["PR_NUMBER"] = str(found[0]["number"])
     if "PR_NUMBER" not in env:
         sha = gh("GET", f"/repos/{repo}/git/ref/heads/{base}", tok)["object"]["sha"]
         branch = "feature/user-search"
