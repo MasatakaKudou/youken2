@@ -48,8 +48,13 @@ POOL = [f"{t}、{p}{s}" for t in TARGETS for p in PROBLEMS for s in ["", "。", 
 
 
 def exp_a(n, par):
+    t0 = time.time(); done = [0]
     def one(i):
-        out = llm.convert(SOFTEN_SKILL, "ここバグってる"); return {"i": i, "out": out, "praise": llm.judge(JUDGE, out)}
+        out = llm.convert(SOFTEN_SKILL, "ここバグってる"); r = {"i": i, "out": out, "praise": llm.judge(JUDGE, out)}
+        done[0] += 1
+        if done[0] % 10 == 0:
+            print(f"  {done[0]}/{n}回  経過 {time.time() - t0:.0f}s", flush=True)
+        return r
     with ThreadPoolExecutor(par) as ex:
         outs = list(ex.map(one, range(n)))
     cold = [o for o in outs if not o["praise"]]
@@ -155,7 +160,7 @@ if __name__ == "__main__":
     ap.add_argument("--n", type=int)
     ap.add_argument("--par", type=int, default=4)
     a = ap.parse_args()
-    print(f"backend={llm.BACKEND} model={llm.MODEL}  並列={a.par}")
+    print(f"backend={llm.BACKEND} model={llm.MODEL}  並列={a.par}（10件ごとに進み具合を表示します）", flush=True)
     t0 = time.time()
     if a.exp == "A": exp_a(a.n or 100, a.par)
     if a.exp == "B": exp_b(a.par)
