@@ -37,7 +37,7 @@ for i in range(n):
     with open("logs/display.jsonl", "a") as f:
         f.write(json.dumps({"i": i, "original": text, "visible_sec": sec}, ensure_ascii=False) + "\n")
     print(f"{i+1}/{n}  {text}  {sec}s")
-    time.sleep(4)  # 無料枠のレート制限に当たらないよう間を空ける
+    time.sleep(10)  # 無料枠の1分あたりの回数制限に当たらないよう間を空ける
 
 s = sorted(results)
 p = lambda q: s[min(len(s) - 1, int(round(q * (len(s) - 1))))]

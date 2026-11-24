@@ -9,8 +9,8 @@ from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 
 API_KEY = os.environ["GEMINI_API_KEY"]
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
-HEDGE_AFTER = float(os.environ.get("GEMINI_HEDGE_AFTER", "2.5"))  # この秒数で返ってこなければ2本目を送る
-MAX_REQUESTS = int(os.environ.get("GEMINI_MAX_REQUESTS", "4"))     # 1回の呼び出しで送る最大本数
+HEDGE_AFTER = float(os.environ.get("GEMINI_HEDGE_AFTER", "5"))  # この秒数で返ってこなければ2本目を送る
+MAX_REQUESTS = int(os.environ.get("GEMINI_MAX_REQUESTS", "3"))     # 1回の呼び出しで送る最大本数
 DEADLINE = float(os.environ.get("GEMINI_DEADLINE", "40"))         # 全体の打ち切り（秒）
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 _pool = ThreadPoolExecutor(16)
@@ -50,11 +50,15 @@ def _call(system, text, json_mode=False, temperature=0.7):
                 return f.result()
             except urllib.error.HTTPError as e:
                 last_err = e; stats["errors"] += 1; had_err = True
-                print(f"  [Gemini] {e.code} → 送り直し", flush=True)
-                if e.code in (429, 500, 503):
-                    time.sleep(2)
+                if e.code == 429:  # 回数制限：指定された秒数（なければ10秒）待つ
+                    w = float(e.headers.get("Retry-After") or 10)
+                    print(f"  [Gemini] 429（回数制限）→ {w:.0f}秒待って送り直し", flush=True); time.sleep(w)
+                elif e.code in (500, 503):
+                    print(f"  [Gemini] {e.code}（混雑）→ 2秒待って送り直し", flush=True); time.sleep(2)
                 else:
                     raise
+                if not pending:
+                    t_end = max(t_end, time.time() + 15)  # 待った分、打ち切りを延ばす
             except Exception as e:  # タイムアウトや通信エラー
                 last_err = e; stats["errors"] += 1; had_err = True
         if sent < MAX_REQUESTS and (not done or had_err):
