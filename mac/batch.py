@@ -1,7 +1,8 @@
 """一括の実測（Colab のノートブックと同じ実験を、Mac から Claude で並列に回す）
 
 使い方：source .env && python3 batch.py 実験 [オプション]
-  A        同じ指摘をスキル相当のプロンプトで変換し、冷たい言い方の回数を数える（既定100回）
+  A        同じ指摘をスキル相当のプロンプトで変換し、褒め言葉になっていない回数を数える（既定100回）
+  A2       実験Aの出力を「冷たい言い方か」で判定し直す（変換はやり直さない）
   B        判定LLMの精度（data/eval_candidates.csv の label 列を工藤さんが付けてから）
   C        負荷試験：褒め率、変換 p99、重複率（既定200件）
   D        カナリア：v13 を 5% に配信し、バーンレートで自動ロールバック
@@ -11,7 +12,7 @@
 import argparse, csv, json, os, random, threading, time
 from concurrent.futures import ThreadPoolExecutor
 import llm
-from prompts import CONVERT_V12, CONVERT_V13, SOFTEN_SKILL, JUDGE
+from prompts import CONVERT_V12, CONVERT_V13, SOFTEN_SKILL, JUDGE, JUDGE_COLD
 
 os.makedirs("results", exist_ok=True)
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -62,6 +63,27 @@ def exp_a(n, par):
     for o in cold[:10]:
         print("  ", o["i"], o["out"])
     save("A_variance", {"n": n, "cold": len(cold), "outs": outs})
+
+
+def exp_a2(par):
+    """実験Aの出力を、「冷たい言い方か」で判定し直す（変換はやり直さない）"""
+    import re
+    d = json.load(open("results/A_variance.json"))
+    def one(o):
+        out = llm._call(JUDGE_COLD, o["out"])
+        m = re.search(r"\{.*?\}", out, re.S)
+        try: return bool(json.loads(m.group(0))["cold"])
+        except Exception: return None
+    with ThreadPoolExecutor(par) as ex:
+        colds = list(ex.map(one, d["outs"]))
+    for o, c in zip(d["outs"], colds): o["cold"] = c
+    n_cold = sum(c is True for c in colds); n_unknown = sum(c is None for c in colds)
+    print(f"褒め言葉になっていない：{d['cold']} / {d['n']} 回（判定：褒めているか）")
+    print(f"冷たい言い方：{n_cold} / {d['n']} 回（判定：冷たいか）  判定できず：{n_unknown}")
+    for o in [o for o in d["outs"] if o.get("cold")][:10]:
+        print("  ", o["i"], o["out"])
+    d.pop("backend", None); d.pop("model", None)
+    save("A_variance", {**d, "cold_tone": n_cold})
 
 
 def exp_b(par):
@@ -156,13 +178,14 @@ def exp_d(par, warmup=30, max_sec=600, ratio=0.05, window=120, min_samples=3, sl
 if __name__ == "__main__":
     os.chdir(HERE)
     ap = argparse.ArgumentParser()
-    ap.add_argument("exp", choices=["A", "B", "C", "D"])
+    ap.add_argument("exp", choices=["A", "A2", "B", "C", "D"])
     ap.add_argument("--n", type=int)
     ap.add_argument("--par", type=int, default=4)
     a = ap.parse_args()
     print(f"backend={llm.BACKEND} model={llm.MODEL}  並列={a.par}（10件ごとに進み具合を表示します）", flush=True)
     t0 = time.time()
     if a.exp == "A": exp_a(a.n or 100, a.par)
+    if a.exp == "A2": exp_a2(a.par)
     if a.exp == "B": exp_b(a.par)
     if a.exp == "C": exp_c(a.n or 200, a.par)
     if a.exp == "D": exp_d(a.par)
