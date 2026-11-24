@@ -1,0 +1,5 @@
+.env
+mac/.env
+mac/logs/
+__pycache__/
+.DS_Store
