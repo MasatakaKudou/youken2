@@ -48,7 +48,7 @@ def main():
         env["GITHUB_TOKEN"] = ask("GitHubのトークン（入力は表示されません）", secret=True)
     if "GEMINI_API_KEY" not in env:
         env["GEMINI_API_KEY"] = ask("GeminiのAPIキー（入力は表示されません）", secret=True)
-    env.setdefault("GEMINI_MODEL", ask("Geminiのモデル名（AI Studioで確認）", default="gemini-flash-lite-latest"))
+    env.setdefault("GEMINI_MODEL", ask("Geminiのモデル名（AI Studioで確認）", default="gemini-3.5-flash-lite"))
     env.setdefault("WEBHOOK_SECRET", secrets.token_hex(24))
     tok, repo = env["GITHUB_TOKEN"], env["GITHUB_REPO"]
 
